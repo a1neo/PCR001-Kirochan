@@ -29,11 +29,33 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Auto-migrate and seed in development
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        await db.Database.MigrateAsync();
+        await DatabaseSeeder.SeedAsync(db);
+        Console.WriteLine("✅ Base de datos lista");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Error inicializando BD: {ex.Message}");
+        Console.WriteLine("   Verifica que PostgreSQL esté corriendo y la connection string sea correcta.");
+    }
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "FerreteriaPOS API v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
